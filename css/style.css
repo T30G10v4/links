@@ -5,5 +5,100 @@
 }
 
 body {
-    background-color: #2f002f;
+    background-color: #0f0f0f;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
 }
+
+.container {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
+/* ── Profile ── */
+.profile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+}
+
+.avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #ff0000;
+    color: #fff;
+    font-size: 1.6rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: -1px;
+}
+
+.profile h1 {
+    color: #ffffff;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.bio {
+    color: #888;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+}
+
+/* ── Links list ── */
+.links {
+    width: 100%;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.link-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: 100%;
+    padding: 0.9rem 1.25rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: transform 0.15s ease, filter 0.15s ease;
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #2a2a2a;
+}
+
+.link-card:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.15);
+}
+
+.link-card .icon {
+    font-size: 1.2rem;
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Individual accent colours */
+.link-card.youtube   { border-left: 4px solid #ff0000; }
+.link-card.video     { border-left: 4px solid #ff6a00; }
+.link-card.playlist  { border-left: 4px solid #f4d03f; }
+.link-card.discord   { border-left: 4px solid #5865f2; }
+.link-card.newsletter{ border-left: 4px solid #00b894; }
+.link-card.github    { border-left: 4px solid #aaa; }
