@@ -1,68 +1,113 @@
 (() => {
     const canvas = document.getElementById('bg-canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx    = canvas.getContext('2d');
 
-    // ── Resize ──────────────────────────────────────────────
+    // ── Config ───────────────────────────────────────────────
+    const CFG = {
+        particleCount : 80,
+        maxDist       : 140,      // max distance to draw a line
+        speed         : 0.35,
+        particleR     : 1.8,
+        bgColor       : 'rgb(0,0,15)',
+        dotColor      : 'rgba(0,223,255,0.75)',
+        lineColorBase : '0,223,255',
+    };
+
+    // ── Resize ───────────────────────────────────────────────
     function resize() {
         canvas.width  = window.innerWidth;
         canvas.height = window.innerHeight;
     }
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', () => { resize(); spawnParticles(); });
     resize();
 
-    // ── Orbs ────────────────────────────────────────────────
-    const ORB_COUNT = 6;
-
+    // ── Particle factory ────────────────────────────────────
     function rand(min, max) { return min + Math.random() * (max - min); }
 
-    const orbs = Array.from({ length: ORB_COUNT }, () => ({
-        x:    rand(0, window.innerWidth),
-        y:    rand(0, window.innerHeight),
-        r:    rand(180, 380),          // radius of the gradient sphere
-        vx:   rand(-0.25, 0.25),       // velocity x
-        vy:   rand(-0.25, 0.25),       // velocity y
-        // Each orb gets a slightly different alpha & size pulse phase
-        phase:  rand(0, Math.PI * 2),
-        speed:  rand(0.004, 0.010),
-        alpha:  rand(0.18, 0.38),
-    }));
+    function makeParticle() {
+        const angle = rand(0, Math.PI * 2);
+        const spd   = rand(CFG.speed * 0.4, CFG.speed);
+        return {
+            x  : rand(0, canvas.width),
+            y  : rand(0, canvas.height),
+            vx : Math.cos(angle) * spd,
+            vy : Math.sin(angle) * spd,
+        };
+    }
 
-    // ── Animation loop ───────────────────────────────────────
-    function draw(ts) {
+    let particles = [];
+
+    function spawnParticles() {
+        particles = Array.from({ length: CFG.particleCount }, makeParticle);
+    }
+    spawnParticles();
+
+    // ── Mouse influence ──────────────────────────────────────
+    const mouse = { x: -9999, y: -9999 };
+    window.addEventListener('mousemove', e => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+    });
+
+    // ── Draw loop ────────────────────────────────────────────
+    function draw() {
         const W = canvas.width;
         const H = canvas.height;
 
-        // Background fill — deep dark blue
-        ctx.fillStyle = 'rgb(0,0,15)';
+        ctx.fillStyle = CFG.bgColor;
         ctx.fillRect(0, 0, W, H);
 
-        for (const orb of orbs) {
-            // Pulsing alpha
-            const pulse = orb.alpha + Math.sin(ts * orb.speed + orb.phase) * 0.08;
-
-            // Radial gradient — spherical glow
-            const grad = ctx.createRadialGradient(
-                orb.x, orb.y, 0,
-                orb.x, orb.y, orb.r
-            );
-            grad.addColorStop(0,   `rgba(0,223,255,${pulse})`);
-            grad.addColorStop(0.4, `rgba(0,150,220,${pulse * 0.45})`);
-            grad.addColorStop(1,   'rgba(0,0,15,0)');
-
-            ctx.beginPath();
-            ctx.arc(orb.x, orb.y, orb.r, 0, Math.PI * 2);
-            ctx.fillStyle = grad;
-            ctx.fill();
+        // Update + draw particles
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
 
             // Move
-            orb.x += orb.vx;
-            orb.y += orb.vy;
+            p.x += p.vx;
+            p.y += p.vy;
 
-            // Bounce off edges (soft: reflect when center exits)
-            if (orb.x < -orb.r)   orb.x = W + orb.r;
-            if (orb.x >  W + orb.r) orb.x = -orb.r;
-            if (orb.y < -orb.r)   orb.y = H + orb.r;
-            if (orb.y >  H + orb.r) orb.y = -orb.r;
+            // Wrap around edges
+            if (p.x < 0)  p.x = W;
+            if (p.x > W)  p.x = 0;
+            if (p.y < 0)  p.y = H;
+            if (p.y > H)  p.y = 0;
+
+            // Draw connections
+            for (let j = i + 1; j < particles.length; j++) {
+                const q  = particles[j];
+                const dx = p.x - q.x;
+                const dy = p.y - q.y;
+                const d  = Math.sqrt(dx * dx + dy * dy);
+
+                if (d < CFG.maxDist) {
+                    const alpha = (1 - d / CFG.maxDist) * 0.55;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(q.x, q.y);
+                    ctx.strokeStyle = `rgba(${CFG.lineColorBase},${alpha})`;
+                    ctx.lineWidth   = 0.8;
+                    ctx.stroke();
+                }
+            }
+
+            // Mouse proximity — extra bright line
+            const mx = p.x - mouse.x;
+            const my = p.y - mouse.y;
+            const md = Math.sqrt(mx * mx + my * my);
+            if (md < CFG.maxDist * 1.4) {
+                const alpha = (1 - md / (CFG.maxDist * 1.4)) * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(mouse.x, mouse.y);
+                ctx.strokeStyle = `rgba(${CFG.lineColorBase},${alpha})`;
+                ctx.lineWidth   = 1;
+                ctx.stroke();
+            }
+
+            // Draw dot
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, CFG.particleR, 0, Math.PI * 2);
+            ctx.fillStyle = CFG.dotColor;
+            ctx.fill();
         }
 
         requestAnimationFrame(draw);
